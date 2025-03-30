@@ -16,7 +16,7 @@ class HistoryDetailViewController: UIViewController, UITableViewDelegate, UITabl
     
     var searchString = ""
     var shouldShowSearchresults = false
-    var context:NSManagedObjectContext!
+    var context:NSManagedObjectContext?
     var fetchedResultsController = NSFetchedResultsController<PartyDate>()
     
     /*func pathURL() -> URL {
@@ -55,6 +55,7 @@ class HistoryDetailViewController: UIViewController, UITableViewDelegate, UITabl
     }
     
     func setupFetchResults() {
+        guard let context else { return }
         let request = fetchRequest()
         request.predicate = getPredicate()
         fetchedResultsController = NSFetchedResultsController(fetchRequest: request, managedObjectContext: context, sectionNameKeyPath: "date", cacheName: nil)
@@ -129,6 +130,7 @@ class HistoryDetailViewController: UIViewController, UITableViewDelegate, UITabl
         return true
     }
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        guard let context else { return }
         if editingStyle == .delete {
             let partyDate:PartyDate = self.fetchedResultsController.object(at: indexPath)
             context.delete(partyDate)

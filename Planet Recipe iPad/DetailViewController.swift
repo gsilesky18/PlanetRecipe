@@ -26,7 +26,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     var width:CGFloat!  
     var container: CKContainer
     var publicDB: CKDatabase
-    var recipe: Recipe!
+    var recipe: Recipe?
     
     required init(coder aDecoder:NSCoder) {
         container = CKContainer(identifier: "iCloud.com.zanysocksapps.PRPhoneS")
@@ -35,19 +35,18 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     }
     
     func configureView() {
-        if let recipe = self.recipe {
-            self.title = recipe.name
-            var totalHeight:CGFloat = 0.0
-            createSpinner()
-            createFavButton()
-            loadPhoto()
-            totalHeight = totalHeight + 415.0
-            totalHeight = loadHeading(yLoc: totalHeight) + totalHeight
-            totalHeight = loadIngredients(yLoc: totalHeight) + totalHeight
-            totalHeight = loadDirectionsHeading(yLoc: totalHeight) + totalHeight
-            totalHeight = loadDirections(yLoc: totalHeight) + totalHeight
-            scrollView.contentSize = ContentSize.getContentSize(width: view.bounds.width, recipe: recipe)
-        }
+        guard let recipe else { return }
+        self.title = recipe.name
+        var totalHeight:CGFloat = 0.0
+        createSpinner()
+        createFavButton()
+        loadPhoto()
+        totalHeight = totalHeight + 415.0
+        totalHeight = loadHeading(yLoc: totalHeight) + totalHeight
+        totalHeight = loadIngredients(yLoc: totalHeight) + totalHeight
+        totalHeight = loadDirectionsHeading(yLoc: totalHeight) + totalHeight
+        totalHeight = loadDirections(yLoc: totalHeight) + totalHeight
+        scrollView.contentSize = ContentSize.getContentSize(width: view.bounds.width, recipe: recipe)
     }
     
     func setRecipeFromEdit(eRecipe: Recipe) {
@@ -156,6 +155,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     }
     
     func loadIngredients(yLoc:CGFloat) -> CGFloat {
+        guard let recipe else { return  0 }
         for ingr in recipe.ingredients! {
             let item:String = (ingr as! Ingredients).item!
             ingredients.append(item)
@@ -191,6 +191,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
         return height
     }
     func loadDirections(yLoc:CGFloat) -> CGFloat {
+        guard let recipe else { return 0 }
         let directions = recipe.directions
         let dirFont = UIFont(name: "Helvetica", size: 16.0)
         let indent:CGFloat = 50.0
@@ -208,6 +209,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     
     //create imageView for photo
     func loadPhoto() {
+        guard let recipe else { return }
         let xLoc = (view.bounds.width / 2.0) - 200.0
         let photoFrame = CGRect(x: xLoc, y: 15.0, width: 400.0, height: 400.0)
         imageView = UIImageView(frame: photoFrame)
@@ -219,7 +221,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
         let spinnerFrame = CGRect(x: view.bounds.width / 2.0, y: 200.0, width: 30.0, height: 30.0)
         spinner = UIActivityIndicatorView(frame: spinnerFrame)
         spinner.hidesWhenStopped = true
-        spinner.style = .whiteLarge
+        spinner.style = UIActivityIndicatorView.Style.large
         spinner.color = UIColor(red: 0.3, green: 0.65, blue: 0.35, alpha: 1.0)
         scrollView.addSubview(spinner)
     }
@@ -237,7 +239,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
         favButton.isEnabled = true
         favButton.addTarget(self, action: #selector(favButtonTapped), for: .touchUpInside)
         scrollView.addSubview(favButton)
-        if recipe.favorite == true {
+        if recipe?.favorite == true {
             favButton.setImage(UIImage(named: "heart30"), for: .normal)
         }else{
             favButton.setImage(UIImage(named: "noHeart30"), for: .normal)
@@ -247,10 +249,10 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     @objc func favButtonTapped() {
         if favButton.image(for: .normal) == UIImage(named: "noHeart30") {
             favButton.setImage(UIImage(named: "heart30"), for: .normal)
-            recipe.favorite = true
+            recipe?.favorite = true
         }else {
             favButton.setImage(UIImage(named: "noHeart30"), for: .normal)
-            recipe.favorite = false
+            recipe?.favorite = false
         }
         do {
             try context.save()
@@ -268,7 +270,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
         let reachability = Reachability()
         if reachability.isConnectedToNetwork() == false {
             spinner.stopAnimating() }
-        if recipe.modified == false {
+        if recipe?.modified == false {
             dataBase = self.container.publicCloudDatabase
         }else {
             dataBase = self.container.privateCloudDatabase
@@ -278,6 +280,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
         let queryOpertion = CKQueryOperation(query: query)
         dataBase.add(queryOpertion)
         queryOpertion.qualityOfService = QualityOfService.userInteractive
+
         queryOpertion.recordFetchedBlock = { record in
             recArray.append(record)
             if recArray.isEmpty {
@@ -306,6 +309,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     }
 
     @IBAction func addtoList(_ sender: UIBarButtonItem) {
+        guard let recipe else { return }
         if FileManager.default.fileExists(atPath: listFilePath()) {
             shoppingDict = NSDictionary(contentsOfFile: listFilePath()) as! Dictionary
         }
@@ -333,6 +337,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     //Mail Methods
     
     @IBAction func mailRecipe(_ sender: UIBarButtonItem) {
+        guard let recipe else { return }
         let mailMessage = "RECIPE: " + recipe.name! + "\n" + "\nINGREDIENTS" + getIngredientsForMail(recipe)
             + "\n" + "\nDIRECTIONS\n" + recipe.directions! + "\n\n" + "Get the App: https://itunes.apple.com/us/app/planet-recipe/id590878471?mt=8"
         let mailComposeViewController = configuredMailComposeViewController(mailMessage as String)
@@ -346,7 +351,7 @@ class DetailViewController: UIViewController, UIPopoverPresentationControllerDel
     func configuredMailComposeViewController(_ textView: String) -> MFMailComposeViewController {
         let mailComposerVC = MFMailComposeViewController()
         mailComposerVC.mailComposeDelegate = self // Extremely important to set the --mailComposeDelegate-- property, NOT the --delegate-- property
-        mailComposerVC.setSubject(recipe.name!)
+        mailComposerVC.setSubject(recipe!.name!)
         mailComposerVC.setMessageBody(textView, isHTML: false)
         mailComposerVC.navigationBar.tintColor = UIColor(red: 0.30, green: 0.65, blue: 0.35, alpha: 1.0)
         return mailComposerVC

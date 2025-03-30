@@ -34,7 +34,7 @@ UINavigationControllerDelegate, CloudkitDelegate {
     let categories:[String] = ["Appetizer", "Entree", "Side", "Dessert"]
     var isBeingEdited:Bool!
     var isRevising:Bool!
-    var recipe:Recipe!
+    var recipe:Recipe?
     var context: NSManagedObjectContext!
     var delegate:SetRecipeFromEditDelegate?
     var sortHoldString = "aa"
@@ -76,7 +76,7 @@ UINavigationControllerDelegate, CloudkitDelegate {
         collider.addBoundary(withIdentifier: "top" as NSCopying, from: leftPt, to: rtPoint)
         if isBeingEdited == true {
             categoryButton.isEnabled = false
-            categoryButton.setTitle(recipe.category, for: .disabled)
+            categoryButton.setTitle(recipe?.category, for: .disabled)
             categoryButton.setTitleColor(UIColor.black, for: .disabled)
             recipeNameTextfield.borderStyle = .none
             populateEditScene()
@@ -96,13 +96,14 @@ UINavigationControllerDelegate, CloudkitDelegate {
     }
     //Populate name and directions
     func populateEditScene() {
-        directionsTextView.text = recipe.directions
-        recipeNameTextfield.text = recipe.name
+        directionsTextView.text = recipe?.directions
+        recipeNameTextfield.text = recipe?.name
         recipeNameTextfield.isUserInteractionEnabled = false
         
     }
     //Create dictionaries for editing ingredients
     func createDictionaries() {
+        guard let recipe else { return }
         for ingred in recipe.ingredients! {
             var ingredDict = [String:String]()
             let ingredient = (ingred as! Ingredients).item
@@ -153,6 +154,7 @@ UINavigationControllerDelegate, CloudkitDelegate {
             alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.cancel, handler: nil))
             present(alert, animated: true, completion: nil)
         }else{
+            guard let recipe else { return }
             if recipeNameTextfield != nil && directionsTextView != nil
                 && recipeNameTextfield.text != ""  && directionsTextView.text != "" && categoryButton.titleLabel?.text != "Category"{
                 startSpinner()
@@ -226,9 +228,9 @@ UINavigationControllerDelegate, CloudkitDelegate {
         }
         if secretNumber == 8845 && isBeingEdited == true  {
             cloudKitHelper.saveModifiedRecipesToCloud(databaseUsed, largePhoto: largeData, recipeDict: recipeDict as NSDictionary)
-        }else if secretNumber != 8845 && isBeingEdited == true && recipe.modified == false {
+        }else if secretNumber != 8845 && isBeingEdited == true && recipe?.modified == false {
             print("do not save to cloudKit")
-        }else if secretNumber != 8845 && isBeingEdited == true && recipe.modified == true {
+        }else if secretNumber != 8845 && isBeingEdited == true && recipe?.modified == true {
             print("got to saving")
             cloudKitHelper.saveModifiedRecipesToCloud(databaseUsed, largePhoto: largeData, recipeDict: recipeDict as NSDictionary)
         }else{
